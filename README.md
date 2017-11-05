@@ -1,0 +1,2 @@
+# OK
+optymalizacja kombinatoryczna - lab
