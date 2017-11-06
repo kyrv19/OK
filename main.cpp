@@ -239,21 +239,18 @@ int main()
         }
         break;
     case 'N':
-        /*int numer_wierzcholka;
-        for (int j = 0; j < N; j++)
+        int numer_wierzcholka;
+        int sasiad;
+        int dlugosc_pliku;
+        cout<<"Podaj dl pliku:"<<endl;
+        cin>>dlugosc_pliku;
+        
+        for (int j = 0; j < dlugosc_pliku; j++)
         {
-                if (macierz[i][j])
-                {
-                    vertex->dodaj(j);
-                }
+              wej>>numer_wierzcholka>>sasiad;  
         }
-        for(int i = 0; i < liczba_wierszy; i++)
-        {
-            cin>>numer_wierzcholka;
-            lista *vertex = new lista;
-            tab_incydencji[numer_wierzcholka] = vertex;
-
-        }*/
+           // lista *vertex = new lista;
+           // tab_incydencji[numer_wierzcholka] = vertex;
         break;
     default:
         cout<<"Wpisz T lub N gamoniu..."<<endl;
