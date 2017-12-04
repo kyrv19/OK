@@ -1,4 +1,5 @@
-﻿
+
+
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
@@ -6,267 +7,509 @@
 #include <fstream>
 #include <time.h>
 #include <limits.h>
+//#include <list>
 
-const int N = 7; // wymiar macierzy (liczba wierzcholkow
-const int ZAGESZCZENIE_KROK = 40;
-const int ZAGESZCZENIE_MIN = 30;    // <30;30+40>
+const int ZAGESZCZENIE_KROK = 30;
+const int ZAGESZCZENIE_MIN = 40;    //
+const float ZAG_CONST = 0.7;
+const int L_SASIADOW = 40; //liczba nowych instancji (sasiadow)
+const int DLUGOSC_TABU=100;
 
-const int LICZBA_KOLOROW = 10;
+//const int LICZBA_KOLOROW = 20;
 
 using namespace std;
 
-int KOLORY[N];
-
 #pragma region LOSOWANIE
 
-void losuj_jedynki(int tab[N][N])
+void losuj_jedynki(int **tab,int N)
 {
 
-    int licz = 0, zageszczenie = ((N*(N - 1)) / 2)*((rand() % (ZAGESZCZENIE_KROK + 1)) + ZAGESZCZENIE_MIN)/100;
-    while (licz < zageszczenie)
-    {
-        int wiersz = rand() % (N - 1);
-        int kolumna = (rand() % (N - wiersz - 1)) + wiersz + 1;
-        if (!tab[wiersz][kolumna])
-        {
-            tab[wiersz][kolumna] = 1;
-            licz++;
-        }
-    }
-    for (int i = 0; i<N; i++)
-    {
-        //int wiersz = rand() % (N - 1);
-        for (int j = 0; j<i; j++)
-        {
+	int licz = 0, zageszczenie = ((N*(N - 1)) / 2)*ZAG_CONST;
+	while (licz < zageszczenie)
+	{
+		int wiersz = rand() % (N - 1);
+		int kolumna = (rand() % (N - wiersz - 1)) + wiersz + 1;
+		if (!tab[wiersz][kolumna])
+		{
+			tab[wiersz][kolumna] = 1;
+			licz++;
+		}
+	}
+	for (int i = 0; i<N; i++)
+	{
+		//int wiersz = rand() % (N - 1);
+		for (int j = 0; j<i; j++)
+		{
 
-            tab[i][j] = tab[j][i];
+			tab[i][j] = tab[j][i];
 
-        }
-    }
+		}
+	}
 
 }
 
-void mieszaj(int tab[N][N])
+void wyswietl(int **tab, int N)
 {
-    for (int j = 0; j < N; j++)
-    {
-        int w1 = rand() % (N - 1);
-        int w2 = rand() % (N - 1);
-        while (w1 == w2)
-        {
-            w2 = rand() % (N - 1);
-        }
-        for (int i = 0; i < N; i++)
-        {
-            int temp = tab[w1][i];
-            tab[w1][i] = tab[w2][i];
-            tab[w2][i] = temp;
-        }
-        for (int i = 0; i < N; i++)
-        {
-            int temp = tab[i][w1];
-            tab[i][w1] = tab[i][w2];
-            tab[i][w2] = temp;
-        }
-    }
-
-}
-void wyswietl(int tab[N][N])
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            cout << tab[i][j] << " ";
-        }
-        cout << endl;
-    }
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			cout << tab[i][j] << " ";
+		}
+		cout << endl;
+	}
 }
 
 
 #pragma region LISTA
 struct wartosc
 {
-
-    int liczba;
-    wartosc *nastepna;    // wskaŸnik na nastêpny element
-    wartosc();            // konstruktor
+	int liczba;
+	wartosc *nastepna;    // wskaŸnik na nastêpny element
+	wartosc();            // konstruktor
 };
 
 wartosc::wartosc()
 {
-    nastepna = NULL;       // konstruktor
+	nastepna = NULL;       // konstruktor
 }
 
 struct lista
 {
-    wartosc *pierwsza;  // wskaŸnik na pocz¹tek listy
-    void dodaj(int liczba);
-    void wyswietl_liste();
-    bool przeszukaj_liste(int kolor);
-    lista();
+	wartosc *pierwsza;  // wskaŸnik na pocz¹tek listy
+	int rozmiar;
+	void dodaj_z_tylu(int liczba);
+	void get_first();
+	void wyswietl_liste();
+	bool przeszukaj_liste(int kolor, int *kolory);
+	lista();
 };
 
 lista::lista()
 {
-    pierwsza = NULL;       // konstruktor
+	pierwsza = NULL;       // konstruktor
+	rozmiar = 0;
 }
 
 void lista::wyswietl_liste()
 {
-    wartosc *temp = pierwsza;
+	wartosc *temp = pierwsza;
 
-    while (temp)
-    {
-        cout << temp->liczba<< " ";
-        // znajdujemy wskaznik na ostatni element
-        temp = temp->nastepna;
-    }
-    cout << endl;
+	while (temp)
+	{
+		cout << temp->liczba << " ";
+		// znajdujemy wskaznik na ostatni element
+		temp = temp->nastepna;
+	}
+	cout << endl;
 }
 
-bool lista::przeszukaj_liste(int kolor)
-{
-    wartosc *temp = pierwsza;
 
-    while (temp)
-    {
-        int i = temp->liczba;
-        if (KOLORY[i] == kolor)return false;
-        // znajdujemy wskaznik na ostatni element
-        temp = temp->nastepna;
-    }
-    return true;
+bool lista::przeszukaj_liste(int kolor, int *kolory)
+{
+	wartosc *temp = pierwsza;
+
+	while (temp)
+	{
+		int i = temp->liczba;
+		if (kolory[i] == kolor)return false;
+		// znajdujemy wskaznik na ostatni element
+		temp = temp->nastepna;
+	}
+	return true;
 }
 
-void lista::dodaj(int liczba)
+void lista::dodaj_z_tylu(int liczba)
 {
-    wartosc *nowa = new wartosc;    // tworzy nowy element listy
-    // wypelniamy naszymi danymi
+	wartosc *nowa = new wartosc;    // tworzy nowy element listy
+									// wypelniamy naszymi danymi
 
-    nowa->liczba = liczba;
-    wartosc *temp = pierwsza;
-    if (pierwsza == 0) // sprawdzamy czy to pierwszy element listy
-    {
-        pierwsza = nowa;
-        pierwsza->nastepna = NULL;
-    }
-    else
-    {
-        while (temp->nastepna != NULL)
-        {
-            temp = temp->nastepna;
+	nowa->liczba = liczba;
+	wartosc *temp = pierwsza;
+	if (pierwsza == 0) // sprawdzamy czy to pierwszy element listy
+	{
+		pierwsza = nowa;
+		pierwsza->nastepna = NULL;
+	}
+	else
+	{
+		while (temp->nastepna != NULL)
+		{
+			temp = temp->nastepna;
 
-        }
-        nowa->nastepna = temp->nastepna;
-        temp->nastepna = nowa;
+		}
+		nowa->nastepna = temp->nastepna;
+		temp->nastepna = nowa;
 
-    }
+	}
+	rozmiar++;
+}
+
+void lista::get_first()
+{
+    //kod
 }
 
 #pragma endregion
 
-void make_list(int macierz[N][N], lista *tab_incydencji[N])
+struct instancja
 {
-    for (int i = 0; i < N; i++)
-    {
-        lista *vertex = new lista;
-        tab_incydencji[i] = vertex;
-        for (int j = 0; j < N; j++)
-        {
-            if (macierz[i][j])
-            {
-                vertex->dodaj(j);
-            }
-        }
-    }
+    int *pokolorowanie;
+    int *kolejnosc;
+    int liczba_kolorow;
+
+    instancja *nastepna;
+    instancja(int *kolejnosc_in, int *pokolorowanie_in, int kolorow_in);
+};
+
+instancja::instancja(int *kolejnosc_in, int *pokolorowanie_in, int kolorow_in)
+{
+    pokolorowanie = pokolorowanie_in;
+    kolejnosc = kolejnosc_in;
+    liczba_kolorow = kolorow_in;
+    nastepna = NULL;
 }
 
-void wyswietl_liste_incydencji(lista *tab_incydencji[N])
+struct listaTabu    // jest to lista tablic pokolorowan
 {
-    for (int i = 0; i < N; i++)
-    {
-        cout << i << "(kolor: "<<KOLORY[i]<< "): ";
-        tab_incydencji[i]->wyswietl_liste();
-        cout << endl;
-    }
+    instancja *pierwsza;  // wskaŸnik na pocz¹tek listy
+    int rozmiar;
+    void dodaj_z_tylu(int *pokolorowanie, int *kolejnosc, int liczba_kolorow);
+    void usun();
+    listaTabu();
+};
+
+listaTabu::listaTabu()
+{
+
+    pierwsza = NULL;
+    rozmiar = 0;
 }
 
-void pokoloruj(lista *tab_incydencji[N])
+void listaTabu::dodaj_z_tylu(int *pokolorowanie, int *kolejnosc, int liczba_kolorow)
 {
-    for (int i = 0; i < N; i++)
-    {
+	instancja *nowa = new instancja(kolejnosc, pokolorowanie, liczba_kolorow);    // tworzy nowy element listy
+									// wypelniamy naszymi danymi
+	instancja *temp = pierwsza;
+	if (pierwsza == 0) // sprawdzamy czy to pierwszy element listy
+	{
+		pierwsza = nowa;
+		pierwsza->nastepna = NULL;
+	}
+	else
+	{
+		while (temp->nastepna != NULL)
+		{
+			temp = temp->nastepna;
 
-        bool szukaj = true;
-        int obecnyKolor = 1;
-        while (szukaj)
-        {
-            if (tab_incydencji[i]->przeszukaj_liste(obecnyKolor))
-            {
-                szukaj = false;
-                break;
-            }
-            if(szukaj)obecnyKolor++;
-        }
-        KOLORY[i] = obecnyKolor;
+		}
+		nowa->nastepna = temp->nastepna;
+		temp->nastepna = nowa;
+
+	}
+	rozmiar++;
+}
+
+void listaTabu::usun()
+{
+    instancja *do_usuniecia = pierwsza;
+    pierwsza = pierwsza->nastepna;
+    delete do_usuniecia;//trzeba zwolnic pamiec po wykorzystaniu tablicy!!
+    //kod, zwraca wskaznik na pole "pokolorowanie" ze struktury insatncja i usuwa z listy (tylko wsk)
+}
+
+
+void make_list(int **macierz, lista **tab_incydencji, int N)
+{
+	for (int i = 0; i < N; i++)
+	{
+		lista *vertex = new lista;
+		tab_incydencji[i] = vertex;
+		for (int j = 0; j < N; j++)
+		{
+			if (macierz[i][j])
+			{
+				vertex->dodaj_z_tylu(j);
+			}
+		}
+	}
+}
+
+void wyswietl_liste_incydencji(lista **tab_incydencji, int *kolory, int N)
+{
+	for (int i = 0; i < N; i++)
+	{
+		cout << i << "(kolor: " << kolory[i] << "): ";
+		tab_incydencji[i]->wyswietl_liste();
+		cout << endl;
+	}
+}
+
+void zapisz_liste(int **macierz,int N)
+{
+	ofstream wyj;
+	wyj.open("instancja.txt");
+	wyj << N << " " << endl;
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			if (macierz[i][j] == 1)
+			{
+				wyj << (i + 1) << " " << (j + 1) << endl;
+			}
+		}
+	}
+	wyj.close();
+}
+
+int szukajMaxKolor(int *kolory, int N)
+{
+    int maks = 0;
+    for(int i = 0; i < N; i++)
+    {
+        if(kolory[i] > maks) maks = kolory[i];
     }
+    return maks;
+}
+
+int pokoloruj(lista **tab_incydencji, int *kolejnosc, int *wynik2, int N)
+{
+    int *kopia = new int [N];
+    int *wynik = new int [N];
+    copy(kolejnosc, kolejnosc + N, kopia);
+    copy(wynik2, wynik2 + N, wynik);
+    int maks_kolor = 0;
+	for (int i = 0; i < N; i++)
+	{
+		int indexMax = 0;
+		for (int j = 0; j < N; j++)
+		{
+			if (kopia[j] != 0 && kopia[j] > kopia[indexMax] )
+			{
+				indexMax = j;
+			}
+		}
+		kopia[indexMax] = 0;
+		bool szukaj = true;
+		int obecnyKolor = 1;
+		while (szukaj)
+		{
+			if (tab_incydencji[indexMax]->przeszukaj_liste(obecnyKolor, wynik))
+			{
+				szukaj = false;
+				break;
+			}
+			if (szukaj)obecnyKolor++;
+		}
+		wynik[indexMax] = obecnyKolor;
+		if (obecnyKolor>maks_kolor)maks_kolor = obecnyKolor;
+	}
+	delete []kopia;
+	return maks_kolor;
+}
+
+bool listaTabu_compare(listaTabu *tabu, int *insta, int N)    //return false jezeli rozne
+{
+    instancja *temp_insta = tabu->pierwsza;
+    if(temp_insta == NULL)
+    {
+        return false;
+    }
+    else
+    {
+        do
+        {
+            for(int i = 0; i < N; i++)
+            {
+                if(temp_insta->kolejnosc[i] != insta[i])
+                {
+                    return false;
+                }
+            }
+            temp_insta = temp_insta->nastepna;
+        }
+        while(temp_insta != NULL);
+    }
+    return true;
+}
+
+int wybierzBestPermutacje(lista **tab_incydencji,int *kolejnosc, int *pokolorowanie, int N, int *kolejnosc_zwracana, listaTabu *tabuList, int nrZmiany)
+{
+    int bestCandidateLiczbaKolorow;
+    int bestKolor=1000;
+    int bestZmiana1=0;
+    int bestZmiana2=0;
+
+    for(int i=0;i<L_SASIADOW;i++){
+        if(i!=nrZmiany){
+           int mix[N];
+           copy(kolejnosc,kolejnosc + N, mix);
+           int temp=mix[nrZmiany];
+           mix[nrZmiany]=mix[i];
+           mix[nrZmiany]=temp;
+           if(listaTabu_compare(tabuList, mix, N)) continue;
+          // for(int j=0;j<N;j++)cout << mix[j] << ", ";
+           int tenKolor=pokoloruj(tab_incydencji,mix,pokolorowanie,N);
+        //   cout << " = " << tenKolor << endl;
+           if(tenKolor<bestKolor){
+                bestKolor=tenKolor;
+                bestZmiana1=i;
+                bestZmiana2=nrZmiany;
+                bestCandidateLiczbaKolorow=tenKolor;
+                copy(mix,mix + N, kolejnosc_zwracana);
+           }
+        }
+
+    }
+    //cout<<bestCandidateLiczbaKolorow<<endl;
+    return bestCandidateLiczbaKolorow;
+}
+
+
+int tabu(lista **tab_incydencji, int *kolejnosc, int *pokolorowanie, int N)
+{
+    int best_liczba_kolorow = pokoloruj(tab_incydencji, kolejnosc, pokolorowanie, N);  //szukajMaxKolor(pokolorowanie, N);
+    cout<<"pierwszy best: "<<best_liczba_kolorow<<endl;
+    instancja *best = new instancja(kolejnosc, pokolorowanie, best_liczba_kolorow);  //najlepszy ogolnie
+    instancja *bestCandidate = new instancja(kolejnosc, pokolorowanie, best_liczba_kolorow);  // naj kandydat do best sposrod sasiadow
+    listaTabu *tabuList = new listaTabu;
+    tabuList->dodaj_z_tylu(kolejnosc, pokolorowanie, best_liczba_kolorow);
+    bool stopCondition = false;
+    int dzialaj = 0;
+    for(int iCounter=3;iCounter<12;iCounter++){
+            dzialaj=0;
+        while(dzialaj < 15000)
+        {
+            listaTabu *sasiedzi = new listaTabu;    //korzystam z listy "listaTabu" bo to lista tablic pokolorowan
+            int *bestCandidateKolejnosc = new int [N];
+            int bestCandidateLiczbaKolorow = wybierzBestPermutacje(tab_incydencji, bestCandidate->kolejnosc, bestCandidate->pokolorowanie, N, bestCandidateKolejnosc, tabuList,iCounter);
+            bestCandidate->liczba_kolorow = bestCandidateLiczbaKolorow;
+            bestCandidate->kolejnosc = bestCandidateKolejnosc;
+            //sasiedzi->get_first(bestCandidate);//trzeba zwolnic pamiec po wykorzystaniu tablicy!! (patrz: get_first)
+            //ktur @UP trzeba usunac strukture "wartosc" z ktorej bierzemy tablice kolorowania
+            // czy jest opcja kopiowania calej partii pamieci tablicy) tak by jej nie przepisywac recznie?
+            // @UPDATE tak, jest taka opcja, patrz copy();
+
+            /*Zrobione w wybierzBestPermutacje
+            for(int i = 0; i < L_SASIADOW - 1; i++)
+            {
+                instancja *tempCandidate;
+                sasiedzi->get_first(tempCandidate);
+                if(/*not in tabuList)
+                {
+                    if(szukajMaxKolor(tempCandidate) < szukajMaxKolor(bestCandidate))
+                    {
+                        bestCandidate = tempCandidate;
+                    }
+
+                }
+            }*/
+            //cout<<"BestCand: "<<bestCandidate->liczba_kolorow<<", best: "<<best->liczba_kolorow<<endl;
+            if(bestCandidate->liczba_kolorow < best->liczba_kolorow)
+            {
+                best = bestCandidate;
+            }
+            tabuList->dodaj_z_tylu(bestCandidate->pokolorowanie, bestCandidate->kolejnosc, bestCandidate->liczba_kolorow);
+            if(dzialaj>DLUGOSC_TABU)
+            {
+                tabuList->usun();
+            }
+            dzialaj++;
+            /*if(tabuList.size > maxTabuSize)
+            {
+                //tabuList.remove();
+            }
+        }
+        return szukajMaxKolor(best);
+    }*/
+        }
+    }
+    return best->liczba_kolorow;
 }
 
 
 int main()
 {
-    srand(time(NULL));
-//    ofstream wyj;
-//    wyj.open("wyniki1.txt");
-    ifstream wej;
-    wej.open("dane.txt");
-    int liczba_wierszy;
-    cout<<"Podaj liczbe wierszy:"<<endl;
-    cin>>liczba_wierszy;
-    cout<<"Macierz? T/N:"<<endl;
-    char flag;
-    cin>>flag;
-    int macierz[N][N] { 0 }; //wszystkie elementy na 0
-    switch(flag)
-    {
-    case 'T':
-        for(int i = 0; i < liczba_wierszy; i++)
-        {
-            for(int j = 0; j < liczba_wierszy; j++)
-            {
-                wej>>macierz[i][j];
-            }
-        }
-        break;
-    case 'N':
-        int numer_wierzcholka;
-        int sasiad;
-        int dlugosc_pliku;
-        cout<<"Podaj dl pliku:"<<endl;
-        cin>>dlugosc_pliku;
-        
-        for (int j = 0; j < dlugosc_pliku; j++)
-        {
-              wej>>numer_wierzcholka>>sasiad;  
-        }
-           // lista *vertex = new lista;
-           // tab_incydencji[numer_wierzcholka] = vertex;
-        break;
-    default:
-        cout<<"Wpisz T lub N gamoniu..."<<endl;
-        break;
+	srand(time(NULL));
+	//    ofstream wyj;
+	//    wyj.open("wyniki1.txt");
+	ifstream wej;
+	//wej.open("queen6.txt");
+	wej.open("miles.txt");
+	int N;
+	wej >> N;
+	/*int  ** macierz = new int * [N]; //wszystkie elementy na 0
+	for(int i=0;i<N;i++){
+        macierz[i] = new int [N];
+	}*/
+
+	lista *tab_incydencji[N];
+	//list<lista*> tab_incydencji[N];
+
+	int *rosnacoWierzcholkiWgKrawedzi= new int [N];
+	int *kolejnoscWierzcholkow= new int [N];
+
+	for(int i=0; i<N; i++)
+	{
+
+	    lista *vertex = new lista;
+	    tab_incydencji[i] = vertex;
+	    //tab_incydencji[i].push_front(vertex);
+	}
+	int numer_wierzcholka;
+	int sasiad;
+	int p=0;
+	while(!wej.eof())
+	{
+	    p++;
+	    wej>>numer_wierzcholka;
+	    numer_wierzcholka-=1;
+		rosnacoWierzcholkiWgKrawedzi[numer_wierzcholka]++;
+	    wej>>sasiad;
+	    sasiad-=1;
+		//rosnacoWierzcholkiWgKrawedzi[sasiad]++;
+	    // cout << numer_wierzcholka << " XX " << sasiad << endl;
+	    tab_incydencji[sasiad]->dodaj_z_tylu(numer_wierzcholka);
+	    //tab_incydencji[sasiad].front().dodaj(numer);
+	    //tab_incydencji[numer_wierzcholka]->dodaj(sasiad);
+	}
+
+
+
+	//losuj_jedynki(macierz);
+
+	//zapisz_liste(macierz);
+	//    mieszaj(macierz);
+
+	//    wyswietl(macierz);
+	//lista *tab_incydencji[N];//TABLICA WSKAZNIKOW NA LISTY SASIADOW KAZDEGO WIERZCHOLKA
+	//make_list(macierz, tab_incydencji);
+	//posortujWierzcholki(tab_incydencji, rosnacoWierzcholkiWgKrawedzi);
+
+    int *pokolorowanie = new int[N];
+	int *rosnace= new int [N];
+
+	for (int i = 0; i < N; i++)
+	{
+		int indexMax = 0;
+		for (int j = 0; j < N; j++)
+		{
+			if (rosnacoWierzcholkiWgKrawedzi[j] != 0 && rosnacoWierzcholkiWgKrawedzi[j] > indexMax )
+			{
+				indexMax = j;
+			}
+		}
+		rosnace[i]=indexMax;
+		rosnacoWierzcholkiWgKrawedzi[indexMax] = 0;
     }
-//    losuj_jedynki(macierz);
-//    mieszaj(macierz);
 
-    wyswietl(macierz);
-    lista *tab_incydencji[N];//TABLICA WSKAZNIKOW NA LISTY SASIADOW KAZDEGO WIERZCHOLKA
-    make_list(macierz, tab_incydencji);
-    pokoloruj(tab_incydencji);
-    wyswietl_liste_incydencji(tab_incydencji);
+    int best_wynik = tabu(tab_incydencji, rosnace, pokolorowanie, N);
+	//    wyswietl_liste_incydencji(tab_incydencji);
+	cout << "MAX KOLOR: " << best_wynik << endl;
 
 
-
-//    wyj.close();
-    return 0;
+	wej.close();
+	return 0;
 }
+
