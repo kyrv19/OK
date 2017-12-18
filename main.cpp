@@ -13,7 +13,7 @@ const int ZAGESZCZENIE_KROK = 30;
 const int ZAGESZCZENIE_MIN = 40;    //
 const float ZAG_CONST = 0.7;
 const int L_SASIADOW = 40; //liczba nowych instancji (sasiadow)
-const int DLUGOSC_TABU=100;
+const int DLUGOSC_TABU=10000;
 
 //const int LICZBA_KOLOROW = 20;
 
@@ -203,7 +203,7 @@ void listaTabu::dodaj_z_tylu(int *pokolorowanie, int *kolejnosc, int liczba_kolo
 			temp = temp->nastepna;
 
 		}
-		nowa->nastepna = temp->nastepna;
+		nowa->nastepna = NULL;
 		temp->nastepna = nowa;
 
 	}
@@ -214,6 +214,7 @@ void listaTabu::usun()
 {
     instancja *do_usuniecia = pierwsza;
     pierwsza = pierwsza->nastepna;
+    rozmiar--;
     delete do_usuniecia;//trzeba zwolnic pamiec po wykorzystaniu tablicy!!
     //kod, zwraca wskaznik na pole "pokolorowanie" ze struktury insatncja i usuwa z listy (tylko wsk)
 }
@@ -377,9 +378,9 @@ int tabu(lista **tab_incydencji, int *kolejnosc, int *pokolorowanie, int N)
     tabuList->dodaj_z_tylu(kolejnosc, pokolorowanie, best_liczba_kolorow);
     bool stopCondition = false;
     int dzialaj = 0;
-    for(int iCounter=3;iCounter<12;iCounter++){
+    for(int iCounter=0;iCounter<12;iCounter++){
             dzialaj=0;
-        while(dzialaj < 15000)
+        while(dzialaj < 1000)
         {
             listaTabu *sasiedzi = new listaTabu;    //korzystam z listy "listaTabu" bo to lista tablic pokolorowan
             int *bestCandidateKolejnosc = new int [N];
@@ -411,7 +412,7 @@ int tabu(lista **tab_incydencji, int *kolejnosc, int *pokolorowanie, int N)
                 best = bestCandidate;
             }
             tabuList->dodaj_z_tylu(bestCandidate->pokolorowanie, bestCandidate->kolejnosc, bestCandidate->liczba_kolorow);
-            if(dzialaj>DLUGOSC_TABU)
+            if(tabuList->rozmiar > DLUGOSC_TABU)
             {
                 tabuList->usun();
             }
@@ -423,7 +424,15 @@ int tabu(lista **tab_incydencji, int *kolejnosc, int *pokolorowanie, int N)
         }
         return szukajMaxKolor(best);
     }*/
+        cout << dzialaj << "   : " <<best->liczba_kolorow << " XX ";
+        for(int i=0;i<N;i++)  cout << bestCandidateKolejnosc[i] << " " ;
+        cout << endl;
+        cout << endl;
+        cout << endl;
+        cout << endl;
         }
+        cout << "XXXX " << endl;
+        cout <<best->liczba_kolorow << endl;
     }
     return best->liczba_kolorow;
 }
@@ -436,7 +445,7 @@ int main()
 	//    wyj.open("wyniki1.txt");
 	ifstream wej;
 	//wej.open("queen6.txt");
-	wej.open("miles.txt");
+	wej.open("miles250.txt");
 	int N;
 	wej >> N;
 	/*int  ** macierz = new int * [N]; //wszystkie elementy na 0
@@ -448,6 +457,7 @@ int main()
 	//list<lista*> tab_incydencji[N];
 
 	int *rosnacoWierzcholkiWgKrawedzi= new int [N];
+	 for(int i=0;i<N;i++)  rosnacoWierzcholkiWgKrawedzi[i] = 0;
 	int *kolejnoscWierzcholkow= new int [N];
 
 	for(int i=0; i<N; i++)
@@ -459,10 +469,10 @@ int main()
 	}
 	int numer_wierzcholka;
 	int sasiad;
-	int p=0;
+	//int p=0;
 	while(!wej.eof())
 	{
-	    p++;
+	    //p++;
 	    wej>>numer_wierzcholka;
 	    numer_wierzcholka-=1;
 		rosnacoWierzcholkiWgKrawedzi[numer_wierzcholka]++;
@@ -470,10 +480,15 @@ int main()
 	    sasiad-=1;
 		//rosnacoWierzcholkiWgKrawedzi[sasiad]++;
 	    // cout << numer_wierzcholka << " XX " << sasiad << endl;
-	    tab_incydencji[sasiad]->dodaj_z_tylu(numer_wierzcholka);
+	    tab_incydencji[numer_wierzcholka]->dodaj_z_tylu(sasiad);
 	    //tab_incydencji[sasiad].front().dodaj(numer);
 	    //tab_incydencji[numer_wierzcholka]->dodaj(sasiad);
 	}
+	for(int i = 0 ; i < N; i++)
+    {
+        cout<<"i: " << i << " ";
+        tab_incydencji[i]->wyswietl_liste();
+    }
 
 
 
@@ -492,18 +507,24 @@ int main()
 
 	for (int i = 0; i < N; i++)
 	{
-		int indexMax = 0;
+		int wart_max = -1;
+		int indeks_max = 0;
 		for (int j = 0; j < N; j++)
 		{
-			if (rosnacoWierzcholkiWgKrawedzi[j] != 0 && rosnacoWierzcholkiWgKrawedzi[j] > indexMax )
+			if (rosnacoWierzcholkiWgKrawedzi[j] != -1 && rosnacoWierzcholkiWgKrawedzi[j] > wart_max )
 			{
-				indexMax = j;
+				wart_max = rosnacoWierzcholkiWgKrawedzi[j];
+				indeks_max=j;
 			}
 		}
-		rosnace[i]=indexMax;
-		rosnacoWierzcholkiWgKrawedzi[indexMax] = 0;
+		rosnace[i]=indeks_max;
+		rosnacoWierzcholkiWgKrawedzi[indeks_max] = -1;
     }
-
+    for(int i=0;i<N;i++)  cout << rosnace[i] << " " ;
+    cout << endl;
+    cout << endl;
+    cout << endl;
+    cout << endl;
     int best_wynik = tabu(tab_incydencji, rosnace, pokolorowanie, N);
 	//    wyswietl_liste_incydencji(tab_incydencji);
 	cout << "MAX KOLOR: " << best_wynik << endl;
@@ -512,4 +533,3 @@ int main()
 	wej.close();
 	return 0;
 }
-
